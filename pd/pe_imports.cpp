@@ -28,7 +28,9 @@ bool pe_imports::build_table(unsigned char* section, __int64 section_size, __int
 	for( int i = 0; i < _libraries.GetSize(); i++ )
 	{
 		if( !_libraries[i]->build_table(section, section_size, section_rva, descriptor_offset, extra_offset) )
+		{
 			retval = false;
+		}
 	}
 
 	// Write the final descriptor
@@ -36,7 +38,9 @@ bool pe_imports::build_table(unsigned char* section, __int64 section_size, __int
 	memset( &blank_descrptor, 0, sizeof(IMAGE_IMPORT_DESCRIPTOR) );
 
 	if( test_read( section, section_size, section + descriptor_offset , sizeof(IMAGE_IMPORT_DESCRIPTOR) ) )
-		memcpy( section + descriptor_offset, &blank_descrptor, sizeof(IMAGE_IMPORT_DESCRIPTOR) );
+	{
+		memcpy(section + descriptor_offset, &blank_descrptor, sizeof(IMAGE_IMPORT_DESCRIPTOR));
+	}
 
 
 	return retval;
@@ -56,7 +60,10 @@ pe_imports::pe_imports(unsigned char* image, __int64 image_size, IMAGE_IMPORT_DE
 			sizeof(IMAGE_IMPORT_DESCRIPTOR ) ) )
 		{
 			IMAGE_IMPORT_DESCRIPTOR* current = &((IMAGE_IMPORT_DESCRIPTOR*) imports)[i];
-			if( current->Characteristics != 0 || current->FirstThunk != 0 || current->ForwarderChain != 0 || current->Name != 0 )
+			if( current->Characteristics != 0 || 
+				current->FirstThunk != 0 || 
+				current->ForwarderChain != 0 || 
+				current->Name != 0 )
 			{
 				this->add_descriptor(current);
 				more = true;
@@ -80,13 +87,19 @@ import_library::~import_library(void)
 	delete _descriptor;
 
 	if( _import_by_name != NULL )
+	{
 		delete[] _import_by_name;
+	}
 
 	if( _library_name != NULL )
+	{
 		delete[] _library_name;
+	}
 
 	if( _thunk_entry != NULL )
+	{
 		delete _thunk_entry;
+	}
 }
 
 import_library::import_library(IMAGE_IMPORT_DESCRIPTOR* descriptor, bool win64)
@@ -115,9 +128,13 @@ import_library::import_library(char* library_name, int ordinal, __int64 rva, boo
 	
 	// Ordinal import
 	if( win64 )
+	{
 		_thunk_entry->u1.Ordinal = IMAGE_ORDINAL_FLAG64 | (ordinal & 0xffff);
+	}
 	else
+	{
 		_thunk_entry->u1.Ordinal = IMAGE_ORDINAL_FLAG32 | (ordinal & 0xffff);
+	}
 }
 
 import_library::import_library(char* library_name, char* proc_name, __int64 rva, bool win64)
@@ -178,7 +195,9 @@ bool import_library::build_table(unsigned char* section, __int64 section_size, _
 	if( _import_by_name != NULL )
 	{
 		if( !test_read(section, section_size, extra_offset + section, _import_by_name_len ) )
+		{
 			return false; // Not enough room
+		}
 		
 		memcpy(extra_offset + section, (char*)_import_by_name, _import_by_name_len);
 		import_name_rva = extra_offset + section_rva;
@@ -190,10 +209,14 @@ bool import_library::build_table(unsigned char* section, __int64 section_size, _
 	if( _thunk_entry != NULL )
 	{
 		if( !test_read(section, section_size, extra_offset + section, sizeof(IMAGE_THUNK_DATA64)*2 ) )
+		{
 			return false;
+		}
 		
 		if( import_name_rva != NULL )
+		{
 			_thunk_entry->u1.AddressOfData = import_name_rva;
+		}
 		
 		memcpy(extra_offset + section, (char*) _thunk_entry, sizeof(IMAGE_THUNK_DATA64));
 		thunk_entry_rva = extra_offset + section_rva;
@@ -206,18 +229,26 @@ bool import_library::build_table(unsigned char* section, __int64 section_size, _
 	
 	// Update and write the IMAGE_IMPORT_DESCRIPTOR
 	if( _descriptor == NULL )
+	{
 		return false;
+	}
 	if( !test_read(section, section_size, descriptor_offset + section, sizeof(IMAGE_IMPORT_DESCRIPTOR)) )
+	{
 		return false; // Not enough room
+	}
 
 	if( thunk_entry_rva != NULL )
+	{
 		_descriptor->OriginalFirstThunk = thunk_entry_rva; // Redirect this to our thunk rva
+	}
 	
 	// Patch up the library name
 	if( _library_name != NULL )
 	{
 		if( !test_read(section, section_size, extra_offset + section, strlen(_library_name) + 1) )
+		{
 			return false; // Not enough room
+		}
 
 		strcpy((char*)(extra_offset + section), _library_name);
 		_descriptor->Name = extra_offset + section_rva;

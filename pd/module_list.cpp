@@ -47,9 +47,13 @@ module_list::module_list( DWORD pid )
 	else
 	{
 		if( GetLastError() == 299 )
+		{
 			fprintf(stderr, "ERROR: Unable to open process PID 0x%x since it is a 64 bit process and this tool is running as a 32 bit process.\r\n", pid);
+		}
 		else
+		{
 			PrintLastError(L"module_list OpenProcess");
+		}
 	}
 	#elif defined(_WIN32)
 
@@ -57,7 +61,9 @@ module_list::module_list( DWORD pid )
 	if ( hSnapshot == INVALID_HANDLE_VALUE )
 	{
 		if( global_flag_verbose )
-			printf ("WARNING: Could not gather process information for process pid 0x%X, error code (%d).\r\n", pid, GetLastError());
+		{
+			printf("WARNING: Could not gather process information for process pid 0x%X, error code (%d).\r\n", pid, GetLastError());
+		}
 		return;
 	}
 
@@ -98,6 +104,9 @@ module_list::module_list( DWORD pid )
 module_list::~module_list(void)
 {
 	// Clean up the module list
-	for ( unordered_map<unsigned __int64, module*>::const_iterator item = _modules.begin(); item != _modules.end(); ++item )
+	unordered_map<unsigned __int64, module*>::const_iterator item;
+	for ( item = _modules.begin(); item != _modules.end(); ++item )
+	{
 		delete item->second;
+	}
 }

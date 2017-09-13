@@ -1,17 +1,18 @@
 #pragma once
 
 #include "stdafx.h"
+#include <windows.h>
 #include <stdio.h>
-#include "windows.h"
-#include "stream_wrapper.h"
 #include <stdlib.h>
-#include "module_list.h"
-#include "export_list.h"
+#include <string.h>
 #include <unordered_map>
 #include <unordered_set>
-#include "string.h"
-#include "pe_imports.h"
 #include <functional>
+
+#include "pe_imports.h"
+#include "module_list.h"
+#include "export_list.h"
+#include "stream_wrapper.h"
 
 using namespace std;
 using namespace std::tr1;

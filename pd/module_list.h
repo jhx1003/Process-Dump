@@ -1,11 +1,11 @@
 #pragma once
 
-#include <stdio.h>
-#include "windows.h"
-#include "simple.h"
-#include <tlhelp32.h>
 #include <unordered_map>
-#include "Psapi.h"
+#include <stdio.h>
+#include <windows.h>
+#include <tlhelp32.h>
+#include <Psapi.h>
+#include "simple.h"
 
 using namespace std::tr1;
 
@@ -48,9 +48,13 @@ class module
 	~module()
 	{
 		if( full_name != NULL )
+		{
 			delete[] full_name;
+		}
 		if( short_name != NULL )
+		{
 			delete[] short_name;
+		}
 	}
 };
 

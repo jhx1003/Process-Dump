@@ -116,7 +116,9 @@ bool pe_hash_database::add_folder( char* dir_name, WCHAR* filter, bool recursive
 					if (result != NULL)
 					{
 						for (int i = 0; i < strlen(ent->d_name); i++)
+						{
 							result[i] = ent->d_name[i];
+						}
 						result[strlen(ent->d_name)] = 0;
 
 						if ((ent->d_type & DT_DIR))
@@ -134,7 +136,8 @@ bool pe_hash_database::add_folder( char* dir_name, WCHAR* filter, bool recursive
 								delete[] directory;
 							}
 						}
-						else {
+						else 
+						{
 							// Check if this filename is a match to the specified pattern
 							if (PathMatchSpec(result, filter))
 							{
@@ -151,13 +154,15 @@ bool pe_hash_database::add_folder( char* dir_name, WCHAR* filter, bool recursive
 									if (_is_mz(fh))
 									{
 										fclose(fh);
-
 										add_file(filename);
 									}
 									else
+									{
 										fclose(fh);
+									}
 								}
-								else {
+								else 
+								{
 									// Error
 									fprintf(stderr, "Error opening file %s: %s.\r\n", filename, strerror(errno));
 								}
@@ -174,7 +179,8 @@ bool pe_hash_database::add_folder( char* dir_name, WCHAR* filter, bool recursive
 				closedir(dir);
 				return true;
 			}
-			else {
+			else 
+			{
 				fprintf(stderr, "Unable to open directory %s: %s.\r\n", dir_name_expanded, strerror(errno));
 			}
 		}
@@ -196,14 +202,17 @@ bool pe_hash_database::remove_folder( char* dir_name, WCHAR* filter, bool recurs
 	if (dir != NULL)
 	{
 		/* print all the files and directories within directory */
-		while ((ent = readdir (dir)) != NULL) {
+		while ((ent = readdir (dir)) != NULL) 
+		{
 			// Convert the path to wchar format
 			wchar_t* result = new wchar_t[ent->d_namlen + 1];
 
 			if( result != NULL )
 			{
 				for( int i = 0; i < ent->d_namlen; i++ )
+				{
 					result[i] = ent->d_name[i];
+				}
 				result[ent->d_namlen] = 0;
 
 				if( (ent->d_type & DT_DIR) )
@@ -220,7 +229,9 @@ bool pe_hash_database::remove_folder( char* dir_name, WCHAR* filter, bool recurs
 						// Cleanup
 						delete[] directory;
 					}
-				}else{
+				}
+				else
+				{
 					// Check if this filename is a match to the specified pattern
 					if( PathMatchSpec( result, filter ) )
 					{
@@ -237,12 +248,15 @@ bool pe_hash_database::remove_folder( char* dir_name, WCHAR* filter, bool recurs
 							if( _is_mz( fh ) )
 							{
 								fclose(fh);
-
 								remove_file(filename);
 							}
 							else
+							{
 								fclose(fh);
-						}else{
+							}
+						}
+						else
+						{
 							// Error
 							fprintf(stderr, "Error opening file %s: %s.\r\n", filename, strerror(errno));
 						}
@@ -258,7 +272,9 @@ bool pe_hash_database::remove_folder( char* dir_name, WCHAR* filter, bool recurs
 		}
 		closedir (dir);
 		return true;
-	}else{
+	}
+	else
+	{
 		fprintf(stderr, "Unable to open directory %s: %s.\r\n", dir_name_expanded, strerror(errno));
 	}
 	return false;
@@ -355,8 +371,8 @@ bool pe_hash_database::save()
 	{
 		// Write the database
 		EnterCriticalSection( &_lock );
-		for (unordered_set<unsigned __int64>::const_iterator it = _clean_hashes.begin();
-			it != _clean_hashes.end(); ++it) 
+		unordered_set<unsigned __int64>::const_iterator it;
+		for ( it = _clean_hashes.begin(); it != _clean_hashes.end(); ++it ) 
 		{
 			hash = *it;
 			fwrite( &hash, sizeof(unsigned __int64), 1, fh );

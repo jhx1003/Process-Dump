@@ -4,7 +4,7 @@
 #include <strsafe.h>
 #include <string>
 #include <iostream>
-#include "windows.h"
+#include <windows.h>
 #include <tlhelp32.h>
 #include <Psapi.h>
 #include <regex>
@@ -35,7 +35,9 @@ public:
 	void set_output_path( char* path )
 	{
 		if( output_path != NULL )
+		{
 			delete[] output_path;
+		}
 
 		output_path = new char[strlen(path) + 1];
 		strcpy_s( output_path, strlen(path) + 1, path);

@@ -6,11 +6,13 @@
 #include <stdio.h>
 #include <io.h>
 #include <sys/types.h>
+#include <windows.h>          // std::mutex
+#include <Shlwapi.h>
+
 #include "dirent.h"
-#include "Shlwapi.h"
 #include "pe_header.h"
 #include "simple.h"
-#include <windows.h>          // std::mutex
+
 
 
 

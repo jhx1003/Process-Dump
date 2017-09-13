@@ -87,7 +87,9 @@ void close_watcher::_monitor_dump_on_close()
 									hooked_pids.insert(dumper->get_pid());
 								}
 								else
+								{
 									delete dumper;
+								}
 							//}
 						}
 					}

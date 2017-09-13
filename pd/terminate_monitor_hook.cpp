@@ -84,7 +84,9 @@ bool terminate_monitor_hook::unhock_terminate()
 		{
 			// Remove our hook allocation
 			if (!_process_is_terminating && _hook_address != NULL)
+			{
 				VirtualFreeEx(_ph, (LPVOID)_hook_address, 0, MEM_RELEASE);
+			}
 		}
 
 		_hook_address = NULL;
@@ -119,7 +121,10 @@ bool terminate_monitor_hook::hook_terminate(export_list* exports)
 			unsigned __int64 address_getthreadid = exports->find_export("kernel32.dll", "GetCurrentThreadId", _is64);
 			unsigned __int64 address_suspendthread = exports->find_export("kernel32.dll", "SuspendThread", _is64);
 
-			if (_address_terminate == NULL || address_getthread == NULL || address_suspendthread == NULL || address_getthreadid == NULL)
+			if (_address_terminate == NULL || 
+				 address_getthread == NULL || 
+				 address_suspendthread == NULL || 
+				 address_getthreadid == NULL )
 			{
 				if (_options->Verbose)
 				{
@@ -309,12 +314,12 @@ bool terminate_monitor_hook::hook_terminate(export_list* exports)
 							//		dq 0
 							hook_code = new unsigned char[sizeof(code)];
 							hook_code_length = sizeof(code);
-							*((unsigned __int64*)(code + 0x10)) = address_getthreadid; // GetCurrentThreadId
-							*((unsigned __int64*)(code + 0x18)) = address_getthread; // GetCurrentThread
-							*((unsigned __int64*)(code + 0x20)) = address_suspendthread; // SuspendThread
-							*((unsigned __int64*)(code + 0x28)) = _address_terminate; // <address_terminate>
-							*((unsigned __int64*)(code + 0x30)) = 32; // _hook_original_code_length
-							memcpy(code + 0x38, _original_hook_bytes, 32); // _hook_original_code
+							*((unsigned __int64*)(code + 0x10)) = address_getthreadid;		// GetCurrentThreadId
+							*((unsigned __int64*)(code + 0x18)) = address_getthread;		// GetCurrentThread
+							*((unsigned __int64*)(code + 0x20)) = address_suspendthread;	// SuspendThread
+							*((unsigned __int64*)(code + 0x28)) = _address_terminate;		// <address_terminate>
+							*((unsigned __int64*)(code + 0x30)) = 32;						// _hook_original_code_length
+							memcpy(code + 0x38, _original_hook_bytes, 32);					// _hook_original_code
 
 							// Copy to use this code as our hook code
 							memcpy(hook_code, code, sizeof(code));
@@ -429,12 +434,12 @@ bool terminate_monitor_hook::hook_terminate(export_list* exports)
 							//		dq 0
 							hook_code = new unsigned char[sizeof(code64)];
 							hook_code_length = sizeof(code64);
-							*((unsigned __int64*)(code64 + 0x10)) = address_getthreadid; // GetCurrentThreadId
-							*((unsigned __int64*)(code64 + 0x18)) = address_getthread; // GetCurrentThread
-							*((unsigned __int64*)(code64 + 0x20)) = address_suspendthread; // SuspendThread
-							*((unsigned __int64*)(code64 + 0x28)) = _address_terminate; // <address_terminate>
-							*((unsigned __int64*)(code64 + 0x30)) = 32; // _hook_original_code_length
-							memcpy(code64 + 0x38, _original_hook_bytes, 32); // _hook_original_code (_original_hook_bytes is not our hook!)
+							*((unsigned __int64*)(code64 + 0x10)) = address_getthreadid;	// GetCurrentThreadId
+							*((unsigned __int64*)(code64 + 0x18)) = address_getthread;		// GetCurrentThread
+							*((unsigned __int64*)(code64 + 0x20)) = address_suspendthread;	// SuspendThread
+							*((unsigned __int64*)(code64 + 0x28)) = _address_terminate;		// <address_terminate>
+							*((unsigned __int64*)(code64 + 0x30)) = 32;						// _hook_original_code_length
+							memcpy(code64 + 0x38, _original_hook_bytes, 32);// _hook_original_code (_original_hook_bytes is not our hook!)
 
 							// Copy to use this code as our hook code
 							memcpy(hook_code, code64, sizeof(code64));
@@ -444,7 +449,9 @@ bool terminate_monitor_hook::hook_terminate(export_list* exports)
 						SIZE_T num_written = 0;
 						bool success = WriteProcessMemory(_ph, (LPVOID)_hook_address, hook_code, hook_code_length, &num_written);
 						if (hook_code != NULL)
+						{
 							delete[]hook_code;
+						}
 
 						if (success && num_written == hook_code_length)
 						{
@@ -466,7 +473,9 @@ bool terminate_monitor_hook::hook_terminate(export_list* exports)
 		else
 		{
 			if( _options->Verbose )
+			{
 				PrintLastError(L"Failed to allocate space for NtTerminateProcess hook.");
+			}
 		}
 
 		return false; // Failed to hook

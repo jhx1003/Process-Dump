@@ -1,9 +1,10 @@
 #pragma once
-#include "work_queue.h"
+
+#include <windows.h>
 #include <thread>
 #include "pe_hash_database.h"
 #include "dump_process.h"
-#include "windows.h"
+#include "work_queue.h"
 
 class close_watcher
 {

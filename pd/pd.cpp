@@ -2,18 +2,19 @@
 //
 
 #include "stdafx.h"
-#include "windows.h"
-#include "pe_header.h"
-#include <tlhelp32.h>
 #include <cstdio>
+#include <thread>
+#include <windows.h>
+#include <tlhelp32.h>
+
+#include "pe_header.h"
 #include "pe_hash_database.h"
 #include "dump_process.h"
 #include "simple.h"
 #include "work_queue.h"
-#include <thread>
-#include "pd.h"
 #include "close_watcher.h"
-
+#include "ThreadManage.h"
+#include "pd.h"
 
 BOOL is_win64()
 {
@@ -38,13 +39,14 @@ bool is_elevated(HANDLE h_Process)
 	
 	if( OpenProcessToken(h_Process, TOKEN_READ | TOKEN_QUERY | TOKEN_ADJUST_PRIVILEGES , &h_Token) )
 	{
-		if(GetTokenInformation(h_Token,TokenElevation,&t_TokenElevation,sizeof(t_TokenElevation),&dw_TokenLength))
+		if(GetTokenInformation(h_Token, TokenElevation, &t_TokenElevation, sizeof(t_TokenElevation), &dw_TokenLength))
 		{
 			if(t_TokenElevation.TokenIsElevated != 0)
 			{
-				if(GetTokenInformation(h_Token,TokenElevationType,&e_ElevationType,sizeof(e_ElevationType),&dw_TokenLength))
+				if(GetTokenInformation(h_Token, TokenElevationType, &e_ElevationType, sizeof(e_ElevationType), &dw_TokenLength))
 				{
-					if(e_ElevationType == TokenElevationTypeFull || e_ElevationType == TokenElevationTypeDefault)
+					if(e_ElevationType == TokenElevationTypeFull || 
+					   e_ElevationType == TokenElevationTypeDefault)
 					{
 						return true;
 					}
@@ -56,25 +58,24 @@ bool is_elevated(HANDLE h_Process)
     return false;
 }
 
-
 bool get_privileges(HANDLE h_Process)
 {
 	HANDLE h_Token;
 	DWORD dw_TokenLength;
-	if( OpenProcessToken(h_Process, TOKEN_READ | TOKEN_QUERY | TOKEN_ADJUST_PRIVILEGES , &h_Token) )
+	if( OpenProcessToken(h_Process, TOKEN_READ | TOKEN_QUERY | TOKEN_ADJUST_PRIVILEGES, &h_Token) )
 	{
 		// Read the old token privileges
 		TOKEN_PRIVILEGES* privilages = new TOKEN_PRIVILEGES[100];
-		if( GetTokenInformation(h_Token, TokenPrivileges, privilages,sizeof(TOKEN_PRIVILEGES)*100,&dw_TokenLength) )
+		if( GetTokenInformation(h_Token, TokenPrivileges, privilages, sizeof(TOKEN_PRIVILEGES)*100, &dw_TokenLength) )
 		{
 			// Enable all privileges
-			for( int i = 0; i < privilages->PrivilegeCount; i++ )
+			for( int i=0; i<privilages->PrivilegeCount; i++ )
 			{
 				privilages->Privileges[i].Attributes = SE_PRIVILEGE_ENABLED;
 			}
 			
-			// Adjust the privilges
-			if(AdjustTokenPrivileges( h_Token, false, privilages, sizeof(TOKEN_PRIVILEGES)*100, NULL, NULL  ))
+			// Adjust the privileges
+			if(AdjustTokenPrivileges(h_Token, false, privilages, sizeof(TOKEN_PRIVILEGES)*100, NULL, NULL))
 			{
 				delete[] privilages;
 				return true;
@@ -138,14 +139,12 @@ void add_process_hashes_worker(Queue<PROCESSENTRY32>* work_queue, pe_hash_databa
 	}
 }
 
-
-
 void add_system_hashes( pe_hash_database* db, PD_OPTIONS* options )
 {
 	// Add clean hashes from all processes on the system right now
 
 	// Build a list of the hashes from all processes
-	options->ImportRec = false; // Force no import reconstruciton
+	options->ImportRec = false; // Force no import reconstruction
 
 	// Build the queue of work from the currently running processes
 	Queue<PROCESSENTRY32> work_queue;
@@ -157,9 +156,9 @@ void add_system_hashes( pe_hash_database* db, PD_OPTIONS* options )
 
 	if( snapshot != INVALID_HANDLE_VALUE )
 	{
-		if (Process32First(snapshot, &entry) == TRUE)
+		if ( Process32First(snapshot, &entry) == TRUE )
 		{
-			while (Process32Next(snapshot, &entry) == TRUE)
+			while ( Process32Next(snapshot, &entry) == TRUE )
 			{
 				printf("...adding process to work queue: pid 0x%x,%S\r\n", entry.th32ProcessID, entry.szExeFile);
 				work_queue.push(entry);
@@ -187,14 +186,19 @@ void add_system_hashes( pe_hash_database* db, PD_OPTIONS* options )
 		for (int i = 0; i < options->NumberOfThreads; i++)
 		{
 			if( WaitForSingleObject(threads[i]->native_handle(), 1) == WAIT_TIMEOUT )
+			{
 				running_count++;
+			}
 		}
 
 		if (count % 10 == 0)
 		{
 			// Print the status
 			int waiting_count = work_queue.count();
-			printf("Hash Queue -> Waiting: %i\tRunning: %i\tComplete: %i\r\n", waiting_count, running_count, total_work_count - (waiting_count + running_count));
+			printf("Hash Queue -> Waiting: %i\tRunning: %i\tComplete: %i\r\n", 
+					waiting_count, 
+					running_count, 
+					total_work_count-(waiting_count+running_count));
 		}
 
 		// Wait
@@ -216,7 +220,6 @@ void add_system_hashes( pe_hash_database* db, PD_OPTIONS* options )
 	}
 	delete []threads;
 }
-
 
 void dump_process_worker(Queue<PROCESSENTRY32>* work_queue, pe_hash_database* db, PD_OPTIONS* options)
 {
@@ -244,7 +247,6 @@ void dump_process_worker(Queue<PROCESSENTRY32>* work_queue, pe_hash_database* db
 	}
 }
 
-
 void dump_system(pe_hash_database* db, PD_OPTIONS* options)
 {
 	// Dump modules from all running processes
@@ -258,11 +260,11 @@ void dump_system(pe_hash_database* db, PD_OPTIONS* options)
 	HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
 	int total_work_count = 0;
 
-	if (snapshot != INVALID_HANDLE_VALUE)
+	if ( snapshot != INVALID_HANDLE_VALUE )
 	{
-		if (Process32First(snapshot, &entry) == TRUE)
+		if ( Process32First(snapshot, &entry) == TRUE )
 		{
-			while (Process32Next(snapshot, &entry) == TRUE)
+			while ( Process32Next(snapshot, &entry) == TRUE )
 			{
 				printf("...adding process to work queue: pid 0x%x,%S\r\n", entry.th32ProcessID, entry.szExeFile);
 				work_queue.push(entry);
@@ -293,7 +295,9 @@ void dump_system(pe_hash_database* db, PD_OPTIONS* options)
 		for (int i = 0; i < options->NumberOfThreads; i++)
 		{
 			if (WaitForSingleObject(threads[i]->native_handle(), 1) == WAIT_TIMEOUT)
+			{
 				running_count++;
+			}
 		}
 
 		// Add any newly started processes at the very end
@@ -301,11 +305,11 @@ void dump_system(pe_hash_database* db, PD_OPTIONS* options)
 		{
 			printf("...adding new processes since we started this job\r\n");
 			HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
-			if (snapshot != INVALID_HANDLE_VALUE)
+			if ( snapshot != INVALID_HANDLE_VALUE )
 			{
-				if (Process32First(snapshot, &entry) == TRUE)
+				if ( Process32First(snapshot, &entry) == TRUE )
 				{
-					while (Process32Next(snapshot, &entry) == TRUE)
+					while ( Process32Next(snapshot, &entry) == TRUE )
 					{
 						if (dumping_pids.count(entry.th32ProcessID) == 0)
 						{
@@ -341,7 +345,10 @@ void dump_system(pe_hash_database* db, PD_OPTIONS* options)
 		{
 			// Print the status
 			int waiting_count = work_queue.count();
-			printf("Dump Queue -> Waiting: %i\tRunning: %i\tComplete: %i\r\n", waiting_count, running_count, total_work_count - (waiting_count + running_count));
+			printf("Dump Queue -> Waiting: %i\tRunning: %i\tComplete: %i\r\n", 
+					waiting_count, 
+					running_count, 
+					total_work_count-(waiting_count+running_count));
 		}
 
 		// Wait
@@ -365,7 +372,35 @@ void dump_system(pe_hash_database* db, PD_OPTIONS* options)
 }
 
 
+void dump_thread_info(pe_hash_database* db, PD_OPTIONS* options)
+{
+	CThreadManage thread;
+	if (!thread.UpdateThreadList())
+	{
+		return;
+	}
 
+	CThreadList::iterator it = thread.m_ThreadList.begin();
+
+	printf("PID\tTID\tThreadAddress\r\n");
+	for (; it!=thread.m_ThreadList.end(); it++)
+	{
+		printf("%d\t%d\t0x%08X\r\n", it->dwProcessId, it->dwThreadId, it->lpStartAddr);
+		printf("\t\tModuleName:%ws\r\n", it->wsModName);
+		printf("\t\tProcessName:%ws\r\n", it->wsProcName);
+		if (it->lpStartAddr!=0 && FALSE)
+		{
+			DWORD pid =it->dwProcessId;
+			dump_process* dumper = new dump_process(pid, db, options, false);
+			dumper->dump_region((__int64)(it->lpStartAddr));
+			delete dumper;
+		}
+
+
+		
+	}
+
+}
 
 
 
@@ -381,6 +416,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	char* processNameFilter = NULL;
 	char* clean_database;
 	string path = ExePath();
+
 	clean_database = new char[ path.length() + strlen("clean.hashes") + 2 ];
 	sprintf( clean_database, "%s\\%s", path.c_str() , "clean.hashes" );
 
@@ -400,7 +436,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	bool flagDB_ignore = false;
 	bool flagDB_remove = false;
 	bool flagRecursion = true;
-	
+	bool flagThreadInfo = false;
 	
 	PD_OPTIONS options;
 	options.ImportRec = true;
@@ -416,30 +452,50 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	if( argc <= 1 )
 		flagHelp = true;
-
+	
+	//get cmd
 	for( int i = 1; i < argc; i++ )
 	{
-		if( lstrcmp(argv[i],L"--help") == 0 || lstrcmp(argv[i],L"-help") == 0 || lstrcmp(argv[i],L"-h") == 0 || lstrcmp(argv[i],L"--h") == 0)
+		if( lstrcmp(argv[i],L"--help") == 0 || 
+			lstrcmp(argv[i],L"-help") == 0 || 
+			lstrcmp(argv[i],L"-h") == 0 || 
+			lstrcmp(argv[i],L"--h") == 0 )
+		{
 			flagHelp = true;
+		}
 		else if( lstrcmp(argv[i],L"-nh") == 0 )
+		{
 			flagHeader = false;
+		}
 		else if( lstrcmp(argv[i],L"-nr") == 0 )
+		{
 			flagRecursion = false;
+		}
 		else if( lstrcmp(argv[i],L"-ni") == 0 )
+		{
 			options.ImportRec = false;
+		}
 		else if( lstrcmp(argv[i],L"-nc") == 0 )
+		{
 			options.DumpChunks = false;
+		}
 		else if (lstrcmp(argv[i], L"-nt") == 0)
+		{
 			options.NumberOfThreads = 1;
+		}
 		else if (lstrcmp(argv[i], L"-closemon") == 0)
+		{
 			flagDumpCloses = true;
+		}
 		else if( lstrcmp(argv[i],L"-v") == 0 )
 		{
 			options.Verbose = true;
 			global_flag_verbose = true;
 		}
 		else if( lstrcmp(argv[i],L"-g") == 0 )
+		{
 			options.ForceGenHeader = true;
+		}
 		else if( lstrcmp(argv[i],L"-pid") == 0 )
 		{
 			if( i + 1 < argc )
@@ -629,7 +685,9 @@ int _tmain(int argc, _TCHAR* argv[])
 			}
 		}
 		else if( lstrcmp(argv[i],L"-system") == 0 )
+		{
 			flagSystemDump = true;
+		}
 		else if( lstrcmp(argv[i],L"-db") == 0 )
 		{
 			// Process the db commands
@@ -644,16 +702,20 @@ int _tmain(int argc, _TCHAR* argv[])
 				if( lstrcmp(argv[i+1],L"gen") == 0 )
 				{
 					flagDB_gen = true;
-				}else if( lstrcmp(argv[i+1],L"genquick") == 0 )
+				}
+				else if( lstrcmp(argv[i+1],L"genquick") == 0 )
 				{
 					flagDB_genQuick = true;
-				}else if( lstrcmp(argv[i+1],L"clean") == 0 )
+				}
+				else if( lstrcmp(argv[i+1],L"clean") == 0 )
 				{
 					flagDB_clean = true;
-				}else if( lstrcmp(argv[i+1],L"ignore") == 0 )
+				}
+				else if( lstrcmp(argv[i+1],L"ignore") == 0 )
 				{
 					flagDB_ignore = true;
-				}else if( lstrcmp(argv[i+1],L"add") == 0 )
+				}
+				else if( lstrcmp(argv[i+1],L"add") == 0 )
 				{
 					// Has yet another argument to specify the directory to add
 					if(  i + 2 < argc )
@@ -680,7 +742,9 @@ int _tmain(int argc, _TCHAR* argv[])
 						exit(0);
 					}
 					i+=1;
-				}else if( lstrcmp(argv[i+1],L"remove") == 0 || lstrcmp(argv[i+1],L"rem") == 0 )
+				}
+				else if( lstrcmp(argv[i+1],L"remove") == 0 || 
+						 lstrcmp(argv[i+1],L"rem") == 0 )
 				{
 					// Has yet another argument to specify the directory to remove
 					if(  i + 2 < argc )
@@ -711,21 +775,31 @@ int _tmain(int argc, _TCHAR* argv[])
 
 
 				i+=1;
-			}else{
+			}
+			else
+			{
 				fprintf(stderr,"Failed to parse -db argument. It must be followed by a command:\r\n\teg. 'pd -db genquick'\r\n");
 				exit(0);
 			}
-		}else{
+		}
+		else if (lstrcmp(argv[i], L"-ti") == 0)
+		{
+			flagThreadInfo = true;
+		}
+		else
+		{
 			// This is an unassigned argument
 			fprintf(stderr,"Failed to parse argument number %i, '%S'. Try 'pd --help' for usage instructions.\r\n", i, argv[i]);
 			exit(0);
 		}
 	}
 
+	//----------------------------------------------------------------------------------------------
+
 	if( flagHeader )
 	{
 		printf("Process Dump v2.1\r\n");
-		printf("  Copyright © 2017, Geoff McDonald\r\n");
+		printf("  Copyright (C) 2017, Geoff McDonald\r\n");
 		printf("  http://www.split-code.com/\r\n");
 		printf("  https://github.com/glmcdona/Process-Dump\r\n\r\n");
 	}
@@ -772,8 +846,15 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 	
 	// Sanity check on flags
-	if( (int) flagPidDump + (int) flagProcessNameDump + (int) flagSystemDump +
-		(int) flagDB_gen + (int) flagDB_genQuick + (int) flagDB_add + (int) flagDB_clean + (int) flagDumpCloses > 1 )
+	if( (int) flagPidDump + 
+		(int) flagProcessNameDump + 
+		(int) flagSystemDump +
+		(int) flagDB_gen + 
+		(int) flagDB_genQuick + 
+		(int) flagDB_add + 
+		(int) flagDB_clean + 
+		(int) flagThreadInfo + 
+		(int) flagDumpCloses > 1 )
 	{
 		// Only one of these at a time
 		fprintf(stderr,"Error. Only one process dump or hash database command should be issued per execution.\r\n");
@@ -808,40 +889,50 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 	
-
+	//----------------------------------------------------------------------------------------------
 	pe_hash_database* db = new pe_hash_database(clean_database);
-
 
 	if( flagDB_clean )
 	{
 		db->clear_database();
 		printf("Cleared the clean hash database.\r\n");
 		db->save();
-	}else if( flagDB_add )
+	}
+	else if( flagDB_add )
 	{
 		// Add the specified folder
 		if( flagRecursion )
+		{
 			printf("Adding all files in folder '%s' recursively to clean hash database...\r\n", add_directory);
+		}
 		else
+		{
 			printf("Adding all files in folder '%s' to clean hash database...\r\n", add_directory);
+		}
 
 		int count_before = db->count();
 		db->add_folder(add_directory, L"*", flagRecursion);
 		printf("Added %i new hashes to the database. It now has %i hashes.\r\n", db->count() - count_before, db->count());
 		db->save();
-	}else if( flagDB_remove )
+	}
+	else if( flagDB_remove )
 	{
 		// Remove the specified folder
 		if( flagRecursion )
+		{
 			printf("Removing all files in folder '%s' recursively from the clean hash database...\r\n", add_directory);
+		}
 		else
+		{
 			printf("Removing all files in folder '%s' from the clean hash database...\r\n", add_directory);
+		}
 		
 		int count_before = db->count();
 		db->remove_folder(add_directory, L"*", flagRecursion);
 		printf("Removed %i hashes from the database. It now has %i hashes.\r\n", count_before - db->count(), db->count());
 		db->save();
-	}else if( flagDB_gen )
+	}
+	else if( flagDB_gen )
 	{
 		printf("Generating full clean database. This can take up to 30 minutes depending on the system.\r\n");
 
@@ -878,7 +969,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		db->save();
 
 		printf("\r\nFinished. The clean hash  database now has %i hashes.\r\n", db->count());
-	}else if( flagDB_genQuick )
+	}
+	else if( flagDB_genQuick )
 	{
 		// Add all the running processes to the clean hash database
 		int count_before = db->count();
@@ -901,7 +993,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	if( flagPidDump )
 	{
 		// Dump the specified PID
-		dump_process* dumper = new dump_process( pid, db,  &options, false );
+		dump_process* dumper = new dump_process( pid, db, &options, false );
 
 		if( flagAddressDump )
 		{
@@ -964,12 +1056,12 @@ int _tmain(int argc, _TCHAR* argv[])
 	else if( flagSystemDump )
 	{
 		// Dump all processes running on the machine right now
-		dump_system( db,  &options );
+		dump_system( db, &options );
 	}
 	else if( flagPidDump )
 	{
 		// Dump the specified process
-		dump_process* dumper = new dump_process( pid, db,  &options, false );
+		dump_process* dumper = new dump_process( pid, db, &options, false );
 		dumper->dump_all();
 		delete dumper;
 	}
@@ -980,7 +1072,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		// Register the quit handler (CTRL-C to stop)
 		if (SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE) == FALSE)
 		{
-			// unable to install handler... 
+			// unable to install handler...
 			// display message to the user
 			printf("WARNING: Unable to install keyboard handler. This means that process dump will not be able to close or cleanup properly.\r\n");
 		}
@@ -1002,7 +1094,10 @@ int _tmain(int argc, _TCHAR* argv[])
 		watcher->stop_monitor();
 		delete watcher;
 	}
-
+	else if (flagThreadInfo)
+	{
+		dump_thread_info(db, &options);
+	}
 	printf("Finished running.\r\n");
 
 	return 0;

@@ -1,13 +1,13 @@
 #pragma once
 
-#include "DynArray.h"
-#include "windows.h"
+#include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 #include "utils.h"
+#include "DynArray.h"
 #include "limits.h"
 
 using namespace std;

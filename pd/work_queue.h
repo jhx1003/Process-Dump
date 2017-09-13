@@ -59,7 +59,9 @@ class Queue
   {
     std::unique_lock<std::mutex> mlock(mutex_);
 	if (queue_.empty())
+	{
 		return false;
+	}
 
     item = queue_.front();
     queue_.pop();

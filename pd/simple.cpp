@@ -10,18 +10,18 @@ DWORD process_find(string match_regex, DynArray<process_description*>* result)
 
 	if( snapshot != INVALID_HANDLE_VALUE )
 	{
-		if (Process32First(snapshot, &entry) == TRUE)
+		if ( Process32First(snapshot, &entry) == TRUE )
 		{
-			while (Process32Next(snapshot, &entry) == TRUE)
+			while ( Process32Next(snapshot, &entry) == TRUE )
 			{
 				char* process_name = new char[wcslen(entry.szExeFile)+1];
 				sprintf( process_name, "%S", entry.szExeFile );
 			
-				string name (process_name);
+				string name(process_name);
 				try
 				{
-					regex reg (match_regex);
-					if( regex_match( name, reg ) )
+					regex reg(match_regex);
+					if( regex_match(name, reg) )
 					{  
 						// Record this as a matching process
 						result->Add( new process_description( process_name, entry.th32ProcessID ) );
@@ -42,11 +42,12 @@ DWORD process_find(string match_regex, DynArray<process_description*>* result)
 	return result->GetSize();
 }
 
-string ExePath() {
+string ExePath() 
+{
     char buffer[MAX_PATH];
     GetModuleFileNameA( NULL, buffer, MAX_PATH );
-    string::size_type pos = string( buffer ).find_last_of( "\\/" );
-    return string( buffer ).substr( 0, pos);
+    string::size_type pos = string(buffer).find_last_of( "\\/" );
+    return string(buffer).substr(0, pos);
 }
 
 void PrintLastError(LPTSTR lpszFunction)
@@ -63,14 +64,15 @@ void PrintLastError(LPTSTR lpszFunction)
         NULL,
         dw,
         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        (LPTSTR) &lpMsgBuf,
+        (LPTSTR)&lpMsgBuf,
         0, NULL );
 
     // Display the error message and exit the process
     lpDisplayBuf = (LPVOID)LocalAlloc(LMEM_ZEROINIT, 
-        (lstrlen((LPCTSTR)lpMsgBuf) + lstrlen((LPCTSTR)lpszFunction) + 40) * sizeof(TCHAR)); 
+        (lstrlen((LPCTSTR)lpMsgBuf) + lstrlen((LPCTSTR)lpszFunction) + 40) * sizeof(TCHAR));
+		 
     StringCchPrintf((LPTSTR)lpDisplayBuf, 
-        LocalSize(lpDisplayBuf) / sizeof(TCHAR),
+        LocalSize(lpDisplayBuf)/sizeof(TCHAR),
         TEXT("%s failed with error %d: %s"), 
         lpszFunction, dw, lpMsgBuf); 
 

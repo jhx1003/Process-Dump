@@ -49,7 +49,9 @@ DynArray<el>::DynArray()
     array = (el *)malloc(realsize*sizeof(el));
 
     if (array == NULL)
+	{
 		throw MEMFAIL;
+	}
 }
 
 
@@ -69,7 +71,9 @@ DynArray<el>::DynArray(const DynArray &a)
 {
     array = (el *)malloc(sizeof(el)*a.realsize);
     if (array == NULL)
+	{
 		throw MEMFAIL;
+	}
 
     memcpy(array, a.array, sizeof(el)*a.realsize);
     realsize = a.realsize;
@@ -81,10 +85,14 @@ template <class el>
 DynArray<el>& DynArray<el>::operator = (const DynArray &a)
 {
     if (this == &a) // in case somebody tries assign array to itself 
+	{
 		return *this;
+	}
 
 	if (a.size == 0) // is other array is empty -- clear this array 
+	{
 		Clear();
+	}
 
 	SetSize(a.size); // set size 
 
@@ -116,7 +124,9 @@ void DynArray<el>::SetSize(unsigned int newsize)
 	    	array = (el *)realloc(array, sizeof(el)*size);
 
 			if (array == NULL)
+			{
 				throw MEMFAIL;
+			}
 		}
 	}
 	else
@@ -127,12 +137,16 @@ template <class el>
 void DynArray<el>::Delete(unsigned int pos)
 {
 	if (size == 1) // If array has only one element 
+	{
 		Clear(); // than we clear it, since it will be deleted 
+	}
 	else
 	{
 		// otherwise, shift array elements 
 		for(unsigned int i=pos; i<size-1; i++) 
-			array[i] = array[i+1];
+		{
+			array[i] = array[i + 1];
+		}
 
 		// decrease array size
 		size--;
@@ -172,7 +186,9 @@ void DynArray<el>::Add(const el &item)
 		array = (el *)realloc(array, sizeof(el)*realsize);
 
 		if (array == NULL)
+		{
 			throw MEMFAIL;
+		}
     }
 
 	array[size-1] = item;

@@ -63,9 +63,13 @@ export_entry::export_entry(export_entry* other)
 export_entry::~export_entry(void)
 {
 	if( library_name != NULL )
-		delete [] library_name;
+	{
+		delete[] library_name;
+	}
 	if( name != NULL )
-		delete [] name;
+	{
+		delete[] name;
+	}
 }
 
 export_list::export_list()
@@ -82,7 +86,9 @@ bool export_list::contains(unsigned __int64 address)
 {
 	// Look up a 64-bit value
 	if ( address <= UINT_MAX )
+	{
 		return contains((unsigned __int32)address);
+	}
 	
 	if (address > _max64 || address < _min64 || (address & ~_bits64) > 0)
 	{
@@ -124,7 +130,9 @@ unsigned __int64 export_list::find_export(char* library, char* name, bool is64)
 	{
 		//if( strcmp(it->second->library_name,"kernel32.dll") == 0 )
 		//	printf("%s::%s\r\n", it->second->library_name, it->second->name);
-		if (it->second->is64 == is64 && (library == NULL || strcmpi(library, it->second->library_name) == 0 ) && strcmpi(name, it->second->name) == 0)
+		if ( it->second->is64 == is64 && 
+			 (library == NULL || strcmpi(library, it->second->library_name) == 0 ) && 
+			 strcmpi(name, it->second->name) == 0 )
 		{
 			// Found a match
 			return it->second->address;
@@ -162,18 +170,26 @@ void export_list::add_export(unsigned __int64 address, export_entry* entry)
 			{
 				// 64bit value
 				if (address > _max64)
+				{
 					_max64 = address;
+				}
 				if (address < _min64)
+				{
 					_min64 = address;
+				}
 				_bits64 = _bits64 | address;
 			}
 			else
 			{
 				// 32bit value
 				if (address > _max32)
+				{
 					_max32 = address;
+				}
 				if (address < _min32)
+				{
 					_min32 = address;
+				}
 				_bits32 = _bits32 | address;
 			}
 		}
@@ -183,8 +199,8 @@ void export_list::add_export(unsigned __int64 address, export_entry* entry)
 bool export_list::add_exports(export_list* other)
 {
 	// Merge the exports from the other list with the current export list
-	for (unordered_map<unsigned __int64,export_entry*>::iterator it = other->_address_to_exports.begin();
-        it != other->_address_to_exports.end(); ++it) 
+	unordered_map<unsigned __int64, export_entry*>::iterator it;
+	for ( it = other->_address_to_exports.begin(); it != other->_address_to_exports.end(); ++it ) 
 	{
 		add_export(it->first, it->second);
 	}
@@ -201,8 +217,9 @@ bool export_list::add_exports(unsigned char* image, SIZE_T image_size, unsigned 
 		{
 			// Library name is invalid, no point in continuing to parse since we need this name to reconstruct any imports anyway
 			//throw std::invalid_argument( printf("Invalid library export directory module name. Unable to add exports to table for import reconstruction. Library base 0x%llX.", (unsigned long long int) image_base ) );
-			fprintf( stderr, "WARNING: Invalid library export directory module name. Unable to add exports to table for import reconstruction. Library base 0x%llX.\r\n",
-											(unsigned long long int) image_base );
+
+			fprintf( stderr, "WARNING: Invalid library export directory module name. Unable to add exports to table for import reconstruction. Library base 0x%llX.\r\n", (unsigned long long int) image_base );
+
 			return false;
 		}
 		
@@ -259,8 +276,8 @@ bool export_list::add_exports(unsigned char* image, SIZE_T image_size, unsigned 
 export_list::~export_list(void)
 {
 	// Clean up the export list
-	for (unordered_map<unsigned __int64,export_entry*>::iterator it = _address_to_exports.begin();
-        it != _address_to_exports.end(); ++it) 
+	unordered_map<unsigned __int64, export_entry*>::iterator it;
+	for (  it = _address_to_exports.begin(); it != _address_to_exports.end(); ++it ) 
 	{
 		delete it->second;
 	}

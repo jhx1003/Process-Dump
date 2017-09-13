@@ -1,16 +1,19 @@
 #pragma once
 
 // content
+
+#include <windows.h>
+#include <tlhelp32.h>
+#include <set>
+
+#include "hash.h"
+#include "simple.h"
+#include "DynArray.h"
+#include "module_list.h"
+#include "export_list.h"
 #include "pe_header.h"
 #include "pe_hash_database.h"
-#include "windows.h"
-#include <tlhelp32.h>
-#include "simple.h"
-#include "module_list.h"
-#include "DynArray.h"
-#include "export_list.h"
-#include "hash.h"
-#include <set>
+
 #include "terminate_monitor_hook.h"
 
 #define PAGE_SIZE 0x1000
@@ -64,10 +67,10 @@ public:
 	bool get_process_name(char* process_name, SIZE_T byte_length);
 
 	// Functions for dumping processes as they close
-	bool monitor_close_start(); // start terminate hooks
-	bool monitor_close_is_waiting(); // check if the process has closed and is waiting dumping
-	bool monitor_close_dump_and_resume(); // dumps the process if it is waiting dumping
-	bool monitor_close_stop(); // stop terminate hooks
+	bool monitor_close_start();				// start terminate hooks
+	bool monitor_close_is_waiting();		// check if the process has closed and is waiting dumping
+	bool monitor_close_dump_and_resume();	// dumps the process if it is waiting dumping
+	bool monitor_close_stop();				// stop terminate hooks
 
 	~dump_process(void);
 };
